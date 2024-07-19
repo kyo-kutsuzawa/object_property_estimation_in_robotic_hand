@@ -1,0 +1,64 @@
+<mujoco model="right_allegro_hand scene">
+
+  <size njmax="10000" nconmax="5000" nstack="5000000"/>
+
+  <include file="right_hand.xml"/>
+
+  <statistic center="0 0 0" extent="0.3"/>
+
+  <!-- <option solver="PGS" iterations="30" tolerance="1e-7" cone="elliptic"/> -->
+
+  <visual>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <quality shadowsize="8192"/>
+    <!-- <quality shadowsize="2048"/> -->
+    <map shadowscale="0.5" fogstart="10" zfar="40" haze="0.3"/>
+    <!-- <global azimuth="130" elevation="-40"/> stiffness="450" -->
+    <global offwidth="1920" offheight="1080"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
+      markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <texture name="texmarble" type="2d" file="../textures/marble.png"/>
+    <texture name="textennis" type="2d" file="../textures/tennis.png"/>
+    <texture name="texsponge" type="2d" file="../textures/sponge.png"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <material name="matmarble" texture="texmarble" rgba=".7 .7 .7 1"/>
+    <material name="mattennis" texture="textennis"/>
+    <material name="matsponge" texture="texsponge" specular="0.3"/>
+  </asset>
+
+  <option cone="elliptic"/>
+
+  <worldbody>
+    <light pos="0 0 1"/>
+    <light pos="0.3 0 1.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" pos="0 0 -0.08" size="0 0 0.05" type="plane" material="groundplane"/>
+    <camera name="camera_name" pos="0.2 0.5 0.3" xyaxes="-1 0.5 0 -1 -1 2"  />
+    <!-- <body name="object" pos="0.085 -0.01 -0.01"> -->
+    <!-- <body pos="0.08 -0.01 0.02" euler="0 0 0.5"> -->
+    <body pos="0.1 -0.02 0.02" euler="0 0 -0.5">
+        <!-- <freejoint/> -->
+         <!-- <composite prefix="OBJ" type="box" count="4 5 7" spacing="0.029">
+                <geom type="capsule" size=".015 0.01" rgba=".8 .2 .1 1" mass="0.003" contype="0" conaffinity="1"/>
+                <joint kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
+                <tendon kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
+         </composite> -->
+         <composite prefix="OBJ" type="box" count="6 5 8" spacing="0.024">
+                <!-- <geom type="capsule" size=".012 .012" rgba=".8 .2 .1 1" mass="0.000625" contype="0" conaffinity="1"/> -->
+                <geom type="capsule" size=".012 .012" rgba=".8 .2 .4 1" mass="0.000625" contype="0" conaffinity="1"/>
+                <joint kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
+                <tendon kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
+         </composite>
+         
+    </body>
+  </worldbody>
+
+</mujoco>
+
+                <!-- <skin texcoord="true" material="mattennis"/> -->
+
+                <!-- <joint kind="main" stiffness="200" damping="10" solreffix="-100 -10"/>
+                <tendon kind="main" stiffness="200" damping="10" solreffix="-100 -10"/> -->
