@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import enum
 import os
 import pickle
 from PIL import Image, ImageDraw
@@ -18,6 +19,12 @@ from collect_dataset import BEFORE_TOUCH, MAX_ITER_PER_EP, OPEN_CLOSE_DIV, START
 shape_names: list = ["Cylinder", "Box", "Sphere"]
 
 
+class MethodType(enum.Enum):
+    unspecified = enum.auto()
+    baseline = enum.auto()
+    proposed = enum.auto()
+
+
 @dataclass
 class EvaluationResult:
     stiffness_true: np.ndarray = field(default_factory=np.ndarray)
@@ -27,6 +34,18 @@ class EvaluationResult:
     shape_est: np.ndarray = field(default_factory=np.ndarray)
     n_data: int = 0
     sequence_length: int = 0
+
+
+@dataclass
+class TrajectoryDataset:
+    joint_angle: np.ndarray = field(default_factory=np.ndarray)
+    joint_velocity: np.ndarray = field(default_factory=np.ndarray)
+    joint_command: np.ndarray = field(default_factory=np.ndarray)
+    stiffness: np.ndarray = field(default_factory=np.ndarray)
+    shape_class: np.ndarray = field(default_factory=np.ndarray)
+    object_position: np.ndarray = field(default_factory=np.ndarray)
+    object_orientation: np.ndarray = field(default_factory=np.ndarray)
+    length: int = 0
 
 
 class VideoRecorder:
@@ -92,7 +111,7 @@ class VideoRecorder:
                 "-pix_fmt",
                 "yuv420p",
                 "-b:v",  # Video bitrate
-                "2048k",
+                "480k",
                 "-loglevel",
                 "warning",
                 outdir,
@@ -106,7 +125,13 @@ class VideoRecorder:
         self.ffmpeg_process = None
 
 
-def main(resultdir: str, /, outdir: str = "video/video.mp4", big: bool = False):
+def main(
+    resultdir: str,
+    datasetdir: str,
+    /,
+    outdir: str = "video/video.mp4",
+    big: bool = False,
+):
     plt.rcParams["text.usetex"] = True
     plt.rcParams["text.latex.preamble"] = r"\usepackage{lmodern}"
     plt.rcParams["font.family"] = "Latin Modern Roman"
@@ -118,6 +143,22 @@ def main(resultdir: str, /, outdir: str = "video/video.mp4", big: bool = False):
 
     with open(resultdir, "rb") as fp:
         result: EvaluationResult = pickle.load(fp)
+
+    with open(datasetdir, "rb") as fp:
+        data_dict: dict = pickle.load(fp)
+
+    dataset = TrajectoryDataset(
+        joint_angle=np.stack(data_dict["data"], axis=0)[:, :, 0:11],
+        joint_velocity=np.stack(data_dict["data"], axis=0)[:, :, 11:22],
+        joint_command=np.stack(data_dict["data"], axis=0)[:, :, 22:33],
+        stiffness=np.stack(data_dict["stiffness"], axis=0),
+        shape_class=np.stack(data_dict["shape"], axis=0),
+        object_position=np.stack(data_dict["pos"], axis=0)[:, :3],
+        object_orientation=np.stack(data_dict["pos"], axis=0)[:, 3:],
+        length=len(data_dict["data"]),
+    )
+
+    print(dataset.object_position.shape, dataset.object_orientation.shape)
 
     dataset_type = 2
     dt = 1e-3 * result.sequence_length
@@ -133,7 +174,7 @@ def main(resultdir: str, /, outdir: str = "video/video.mp4", big: bool = False):
     ax_k = fig.add_subplot(gs[0, 0])
     ax_k.set_ylabel("Stiffness [N/m]")
     ax_k.set_xticklabels([])
-    ax_k.set_ylim(-100, 900)
+    ax_k.set_ylim(-50, 250)
 
     ax_s = fig.add_subplot(gs[1, 0])
     ax_s.set_xlabel("Time [s]", labelpad=0)
@@ -163,14 +204,14 @@ def main(resultdir: str, /, outdir: str = "video/video.mp4", big: bool = False):
     recorder.reset(os.path.join(os.path.dirname(outdir), f"tmp.mp4"))
     episode = None
     env.load_env2()
-    env.reset2()
+    env.reset2(fluctuation=True)
     for t in range(2):
         env.step_touch(dataset_type, episode)
         recorder.write_frame(env, fig, 0, 0)
     recorder.finish()
 
     recorder.reset(outdir)
-    for i in range(result.n_data):
+    for i in range(0, result.n_data, 10):
         stiffness = float(np.mean(result.stiffness_true[i]))
         shape_class = int(np.mean(result.shape_true[i]))
 
@@ -178,7 +219,11 @@ def main(resultdir: str, /, outdir: str = "video/video.mp4", big: bool = False):
         env.model = models[shape_class]
         env.load_env2()
         env.set_new_stiffness2(stiffness)
-        env.reset2()
+        env.reset2(
+            fluctuation=True,
+            pos=dataset.object_position[i],
+            quat=dataset.object_orientation[i],
+        )
 
         env.viewer.cam.distance = 0.35
         env.viewer.cam.azimuth = 0

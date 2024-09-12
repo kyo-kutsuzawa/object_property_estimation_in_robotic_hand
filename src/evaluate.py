@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import enum
 import json
 import os
 import pickle
@@ -6,9 +7,16 @@ import numpy as np
 import torch
 import tyro
 from utils import CustomDataset, norm
+import mymodel
 
 
 shape_names: list = ["Cylinder", "Box", "Sphere"]
+
+
+class MethodType(enum.Enum):
+    unspecified = enum.auto()
+    baseline = enum.auto()
+    proposed = enum.auto()
 
 
 @dataclass
@@ -20,6 +28,7 @@ class EvaluationResult:
     shape_est: np.ndarray = field(default_factory=np.ndarray)
     n_data: int = 0
     sequence_length: int = 0
+    method: MethodType = MethodType.unspecified
 
 
 def main(modelname: str, dataname: str, outdir: str, /, use_gpu: bool = False):
@@ -33,6 +42,7 @@ def main(modelname: str, dataname: str, outdir: str, /, use_gpu: bool = False):
     ep_size: int = settings["ep_size"]
     stiffness_range: float = settings["stiffness_range"]
     stiffness_min: float = settings["stiffness_min"]
+    input_size: int = settings["input_size"]
 
     torch.manual_seed(seed)
 
@@ -45,6 +55,8 @@ def main(modelname: str, dataname: str, outdir: str, /, use_gpu: bool = False):
 
     net = torch.load(modelname, map_location=device)
     net.eval()
+
+    sequence_length = net.input_size // input_size
 
     dataset = load_dataset(dataname, sequence_length)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=ep_size)
@@ -75,6 +87,14 @@ def main(modelname: str, dataname: str, outdir: str, /, use_gpu: bool = False):
     ln_var_tensor = torch.concat(ln_var_list, dim=0)
     z_raw_tensor = torch.concat(z_raw_list, dim=0)
 
+    method = MethodType.unspecified
+    if isinstance(net, mymodel.LSTM_Variance):
+        method = MethodType.proposed
+    elif isinstance(net, mymodel.LSTM_Baseline):
+        method = MethodType.baseline
+    else:
+        method = MethodType.unspecified
+
     result = EvaluationResult(
         stiffness_true=y_array,
         shape_true=z_array,
@@ -83,6 +103,7 @@ def main(modelname: str, dataname: str, outdir: str, /, use_gpu: bool = False):
         shape_est=torch.softmax(z_raw_tensor, dim=2).numpy(),
         n_data=y_array.shape[0],
         sequence_length=sequence_length,
+        method=method,
     )
 
     with open(outdir, "wb") as fp:

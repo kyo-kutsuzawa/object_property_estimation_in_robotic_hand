@@ -1,43 +1,12 @@
-import json
 import numpy as np
+import torch
 from torch.utils.data import Dataset
-
-# load json data
-f_in = open("config/config.json", "r")
-settings = json.load(f_in)
-
-# load json parameters
-seed = settings["seed"]
-input_size = settings["input_size"]
-sequence_length = settings["sequence_length"]
-num_steps = settings["num_steps"]
-hidden_dim = settings["hidden_dim"]
-n_layers = settings["n_layers"]
-num_stiffness_outputs = settings["num_stiffness_outputs"]
-num_shape_outputs = settings["num_shape_outputs"]
-ep_size = settings["ep_size"]
-batch_size = settings["batch_size"]
-num_episodes_train = settings["num_episodes_train"]
-num_episodes_test = settings["num_episodes_test"]
-epochs = settings["epochs"]
-lr = settings["lr"]
-gamma = settings["gamma"]
-clip_grad_norm = settings["clip_grad_norm"]
-stiffness_range = settings["stiffness_range"]
-stiffness_min = settings["stiffness_min"]
-weight_decay = settings["weight_decay"]
-tensorboard_path = settings["tensorboard_path"]
-num_splits = settings["num_splits"]
-alpha = settings["alpha"]
-beta = settings["beta"]
-g = settings["g"]
-model_save_interval = settings["model_save_interval"]
 
 norm = lambda raw_output, y_range, y_min: y_range * (raw_output + 1) * 0.5
 
 
 class CustomDataset(Dataset):
-    def __init__(self, data, sequence_size, augment):
+    def __init__(self, data, sequence_size, augment, device=torch.device("cpu")):
         self.random_seed = 42
         self.data = np.array(data["data"])
         self.sequence_size = sequence_size
@@ -53,9 +22,12 @@ class CustomDataset(Dataset):
         self.episode_length = len(self.data[0])
         self.total_steps = self.num_episodes * self.episode_length
 
-        self.seq_data, self.labels_stiffness, self.labels_shape = (
-            self.make_sequence_data()
-        )
+        seq_data, labels_stiffness, labels_shape = self.make_sequence_data()
+
+        self.device = device
+        self.seq_data = torch.from_numpy(seq_data).to(self.device)
+        self.labels_stiffness = torch.from_numpy(labels_stiffness).to(self.device)
+        self.labels_shape = torch.from_numpy(labels_shape).to(self.device)
 
     def __len__(self):
         return len(self.seq_data)

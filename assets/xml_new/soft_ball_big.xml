@@ -37,7 +37,7 @@
     <geom name="floor" pos="0 0 -0.08" size="0 0 0.05" type="plane" material="groundplane"/>
     <!-- <body name="object" pos="0.085 -0.01 -0.01"> -->
     <!-- <body pos="0.085 -0.02 0.025"> -->
-    <body pos="0.1 -0.025 0.02">
+    <body name="target_object" pos="0.1 -0.025 0.02">
         <!-- <freejoint/> -->
          <!-- <composite prefix="OBJ" type="ellipsoid" count="7 7 7" spacing="0.027">
                 <geom type="capsule" size=".012 0.01" rgba=".8 .2 .1 1" mass="0.003" contype="0" conaffinity="1"/>

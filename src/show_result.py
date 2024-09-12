@@ -1,4 +1,3 @@
-import os
 import pickle
 import matplotlib
 import matplotlib.axes
@@ -7,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 import numpy as np
 import tyro
-from evaluate import EvaluationResult, shape_names
+from evaluate import EvaluationResult, MethodType, shape_names
 
 
 def main(resultdir: str, /, figname: str = "result/result.pdf", plot: bool = True):
@@ -23,8 +22,13 @@ def main(resultdir: str, /, figname: str = "result/result.pdf", plot: bool = Tru
     with open(resultdir, "rb") as fp:
         result: EvaluationResult = pickle.load(fp)
 
+    stiffness_list = list(
+        set([int(np.mean(result.stiffness_true[i])) for i in range(result.n_data)])
+    )
+    stiffness_list.sort()
+
     n_classes = len(shape_names)
-    n_stiffness = int(result.n_data / n_classes)
+    n_stiffness = len(stiffness_list)
     dt = 1e-3 * result.sequence_length
 
     fig = plt.figure(figsize=(12 * cm, 9 * cm), constrained_layout=True)
@@ -77,12 +81,21 @@ def main(resultdir: str, /, figname: str = "result/result.pdf", plot: bool = Tru
     ax_s.set_xlabel("Times [s]")
     ax_s.set_ylabel("Entropy of\nshape estimation")
 
+    stiffness_plotted = {}
+    for k in stiffness_list:
+        stiffness_plotted[k] = {}
+        for s in range(n_classes):
+            stiffness_plotted[k][s] = False
+
     for i in range(result.n_data):
-        # Here, it is assumed that e.g.:
-        # stiffness: [1, 100, 200, ..., 1, 100, 200, ..., 1, 100, 200, ...]
-        # shape: [0, 0, 0, ..., 1, 1, 1, ..., 2, 2, 2, ...]
-        idx_shape = int(np.floor(i / n_stiffness))
-        idx_stiffness = i % n_stiffness
+        k = int(np.mean(result.stiffness_true[i]))
+        s = int(np.mean(result.shape_true[i]))
+        idx_shape = int(np.mean(result.shape_true[i]))
+        idx_stiffness = stiffness_list.index(k)
+
+        if stiffness_plotted[k][s]:
+            continue
+        stiffness_plotted[k][s] = True
 
         times = np.arange(result.stiffness_true.shape[1]) * dt
         color = matplotlib.colormaps.get_cmap("viridis")(idx_stiffness / n_stiffness)

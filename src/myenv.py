@@ -29,9 +29,6 @@ class HandEnv(Env):
     joint_ids_cyl = list(range(17, 209))
     joint_ids_box = list(range(17, 185))
     joint_ids_bal = list(range(17, 235))
-    joint_ids_cyl_big = list(range(17, 209))
-    joint_ids_box_big = list(range(17, 185))
-    joint_ids_bal_big = list(range(17, 235))
     tendon_ids = list(range(1))
     _assetdir = os.path.join(os.path.dirname(__file__), "..", "assets")
     cylinder = os.path.join(_assetdir, "xml_new/soft_cylinder.xml")
@@ -40,6 +37,9 @@ class HandEnv(Env):
     cylinder_big = os.path.join(_assetdir, "xml_new/soft_cylinder_big.xml")
     box_big = os.path.join(_assetdir, "xml_new/soft_box_big.xml")
     ball_big = os.path.join(_assetdir, "xml_new/soft_ball_big.xml")
+    cylinder_small = os.path.join(_assetdir, "xml_new/soft_cylinder_small.xml")
+    box_small = os.path.join(_assetdir, "xml_new/soft_box_small.xml")
+    ball_small = os.path.join(_assetdir, "xml_new/soft_ball_small.xml")
     cylinder_pos = os.path.join(_assetdir, "xml_new/soft_cylinder_pos.xml")
     box_pos = os.path.join(_assetdir, "xml_new/soft_box_pos.xml")
     ball_pos = os.path.join(_assetdir, "xml_new/soft_ball_pos.xml")
@@ -75,15 +75,12 @@ class HandEnv(Env):
         selected_model = random.choice(models)
         self.random_model = selected_model
 
-        if (
-            self.dataset == 0
-            or self.dataset == 1
-            or self.dataset == 2
-            or self.dataset == 3
-        ):
+        if self.dataset in [0, 1, 2, 3, 4]:
             scene = load_model_from_path(self.model)  # train
-        elif self.dataset == 5 or self.dataset == 6:
+        elif self.dataset in [5, 6]:
             scene = load_model_from_path(self.random_model)  # test
+        if self.dataset in [20, 21, 22, 23, 24]:
+            scene = load_model_from_path(self.model)  # train
         elif self.dataset == 100:
             scene = load_model_from_path(self.model)  # for paper
 
@@ -137,6 +134,27 @@ class HandEnv(Env):
                 self.model = self.box_big
             elif 14 <= self.num < 21:
                 self.model = self.ball_big
+
+        # Training data (full)
+        if self.dataset == 4:
+            if self.num < 200:
+                self.model = self.cylinder
+            elif self.num < 400:
+                self.model = self.box
+            elif self.num < 600:
+                self.model = self.ball
+            elif self.num < 800:
+                self.model = self.cylinder_big
+            elif self.num < 1000:
+                self.model = self.box_big
+            elif self.num < 1200:
+                self.model = self.ball_big
+            elif self.num < 1400:
+                self.model = self.cylinder_small
+            elif self.num < 1600:
+                self.model = self.box_small
+            elif self.num < 1800:
+                self.model = self.ball_small
 
         # Only hand (used for a figure in a paper)
         if self.dataset == 100:
@@ -232,10 +250,14 @@ class HandEnv(Env):
     def reset(self, dataset, episode):  # train_dataset
         if dataset == 5:
             current_stiffness = self.set_new_stiffness()
-        elif dataset == 0 or dataset == 1:
+        elif dataset in [0, 1, 4]:
             current_stiffness = self.set_new_stiffness_4(episode)
-        elif dataset == 2 or dataset == 3:
+        elif dataset in [2, 3]:
             current_stiffness = self.set_new_stiffness_128(episode)
+
+        if dataset in [0, 1, 2, 3, 4]:
+            obj_pos = self.set_object_position()
+
         self.sim.reset()
         self.sim.forward()
 
@@ -243,38 +265,44 @@ class HandEnv(Env):
             self.step(dataset, episode, self.sim_start)
 
         shape = self.model
-        if (
-            shape == self.cylinder
-            or shape == self.cylinder_big
-            or shape == self.cylinder_pos
-            or shape == self.cylinder_middle
-            or shape == self.cylinder_pos_test
-        ):
+        if shape in [
+            self.cylinder,
+            self.cylinder_big,
+            self.cylinder_small,
+            self.cylinder_pos,
+            self.cylinder_middle,
+            self.cylinder_pos_test,
+        ]:
             current_shape = 1  # cylinder
-        elif (
-            shape == self.box
-            or shape == self.box_big
-            or shape == self.box_pos
-            or shape == self.box_middle
-            or shape == self.box_pos_test
-        ):
+        elif shape in [
+            self.box,
+            self.box_big,
+            self.box_small,
+            self.box_pos,
+            self.box_middle,
+            self.box_pos_test,
+        ]:
             current_shape = 2  # box
-        elif (
-            shape == self.ball
-            or shape == self.ball_big
-            or shape == self.ball_pos
-            or shape == self.ball_middle
-            or shape == self.ball_pos_test
-        ):
+        elif shape in [
+            self.ball,
+            self.ball_big,
+            self.ball_small,
+            self.ball_pos,
+            self.ball_middle,
+            self.ball_pos_test,
+        ]:
             current_shape = 3  # ball
         elif shape == self.only_hand:
             current_shape = 3  # ball
 
-        labels = [current_stiffness, current_shape]
+        labels = [current_stiffness, current_shape] + obj_pos.flatten().tolist()
 
         return np.asanyarray(labels, dtype=float).reshape(-1)
 
-    def reset2(self):
+    def reset2(self, fluctuation=False, pos=None, quat=None):
+        if fluctuation:
+            obj_pos = self.set_object_position(pos, quat)
+
         self.sim.reset()
         self.sim.forward()
 
@@ -283,7 +311,9 @@ class HandEnv(Env):
             episode = None
             self.step(dataset, episode, self.sim_start)
 
-    def reset_random(self):  # train_dataset
+        return obj_pos.flatten()
+
+    def reset_random(self):
         current_stiffness = self.set_new_stiffness_random_shape()
         self.sim.reset()
         self.sim.forward()
@@ -305,7 +335,7 @@ class HandEnv(Env):
 
         return np.asanyarray(labels, dtype=float).reshape(-1)
 
-    def reset_movie(self, j):  # train_dataset
+    def reset_movie(self, j):
         current_stiffness = self.set_new_stiffness_movie(j)
         self.sim.reset()
         self.sim.forward()
@@ -373,7 +403,7 @@ class HandEnv(Env):
     def get_sensor_sensordata(self):
         data = self.sim.data
 
-        # return true when all fingers can contact an object's body
+        # Return true when all fingers can contact an object's body
         is_contact_between_fingers_and_object = False
         fingers_left = self.finger_names
         for coni in range(data.ncon):
@@ -453,8 +483,6 @@ class HandEnv(Env):
             self.sim.data.ctrl[15] = -np.sin(t) * 0.05
 
     def close_hand(self, i):
-        t = i * self.sim.model.opt.timestep
-
         self.is_closing = True
 
     def loose_hand(self, i):
@@ -500,36 +528,16 @@ class HandEnv(Env):
         return new_value
 
     def set_new_stiffness_4(self, episode, range_min=1, range_max=801):
-        if 201 <= episode < 401:
-            episode = episode - 200
-        elif 401 <= episode < 601:
-            episode = episode - 400
-        elif 601 <= episode < 801:
-            episode = episode - 600
-        elif 801 <= episode < 1001:
-            episode = episode - 800
-        elif 1001 <= episode < 1201:
-            episode = episode - 1000
-
+        episode = (episode - 1) % 200 + 1
         new_value = range_min + 4 * (episode - 1)
         shape = self.model
 
-        if (
-            shape == self.cylinder
-            or shape == self.cylinder_big
-            or shape == self.cylinder_pos
-        ):
+        if shape in [self.cylinder, self.cylinder_big, self.cylinder_small]:
             self.joint_ids = self.joint_ids_cyl
-        elif shape == self.box or shape == self.box_big or shape == self.box_pos:
+        elif shape in [self.box, self.box_big, self.box_small]:
             self.joint_ids = self.joint_ids_box
-        elif shape == self.ball or shape == self.ball_big or shape == self.ball_pos:
+        elif shape in [self.ball, self.ball_big, self.ball_small]:
             self.joint_ids = self.joint_ids_bal
-        elif shape == self.cylinder_big:
-            self.joint_ids = self.joint_ids_cyl_big
-        elif shape == self.box_big:
-            self.joint_ids = self.joint_ids_box_big
-        elif shape == self.ball_big:
-            self.joint_ids = self.joint_ids_bal_big
         elif shape == self.only_hand:
             self.joint_ids = self.joint_ids_bal
 
@@ -541,35 +549,16 @@ class HandEnv(Env):
         return new_value
 
     def set_new_stiffness_128(self, episode, range_min=3, range_max=801):
-        if 8 <= episode < 15:
-            episode = episode - 7
-        elif 15 <= episode < 22:
-            episode = episode - 14
+        episode = (episode - 1) % 7 + 1
         new_value = range_min + 128 * (episode - 1)
         shape = self.model
 
-        if (
-            shape == self.cylinder
-            or shape == self.cylinder_middle
-            or shape == self.cylinder_pos_test
-        ):
+        if shape in [self.cylinder, self.cylinder_big, self.cylinder_small]:
             self.joint_ids = self.joint_ids_cyl
-        elif (
-            shape == self.box or shape == self.box_middle or shape == self.box_pos_test
-        ):
+        elif shape in [self.box, self.box_big, self.box_small]:
             self.joint_ids = self.joint_ids_box
-        elif (
-            shape == self.ball
-            or shape == self.ball_middle
-            or shape == self.ball_pos_test
-        ):
+        elif shape in [self.ball, self.ball_big, self.ball_small]:
             self.joint_ids = self.joint_ids_bal
-        elif shape == self.cylinder_big:
-            self.joint_ids = self.joint_ids_cyl_big
-        elif shape == self.box_big:
-            self.joint_ids = self.joint_ids_box_big
-        elif shape == self.ball_big:
-            self.joint_ids = self.joint_ids_bal_big
 
         for j in self.joint_ids:
             self.sim.model.jnt_stiffness[j] = new_value
@@ -581,28 +570,12 @@ class HandEnv(Env):
     def set_new_stiffness2(self, stiffness):
         shape = self.model
 
-        if (
-            shape == self.cylinder
-            or shape == self.cylinder_middle
-            or shape == self.cylinder_pos_test
-        ):
+        if shape in [self.cylinder, self.cylinder_big, self.cylinder_small]:
             self.joint_ids = self.joint_ids_cyl
-        elif (
-            shape == self.box or shape == self.box_middle or shape == self.box_pos_test
-        ):
+        elif shape in [self.box, self.box_big, self.box_small]:
             self.joint_ids = self.joint_ids_box
-        elif (
-            shape == self.ball
-            or shape == self.ball_middle
-            or shape == self.ball_pos_test
-        ):
+        elif shape in [self.ball, self.ball_big, self.ball_small]:
             self.joint_ids = self.joint_ids_bal
-        elif shape == self.cylinder_big:
-            self.joint_ids = self.joint_ids_cyl_big
-        elif shape == self.box_big:
-            self.joint_ids = self.joint_ids_box_big
-        elif shape == self.ball_big:
-            self.joint_ids = self.joint_ids_bal_big
 
         for j in self.joint_ids:
             self.sim.model.jnt_stiffness[j] = stiffness
@@ -614,7 +587,6 @@ class HandEnv(Env):
     def set_new_stiffness_random_shape(self, range_min=1, range_max=800):
         new_value = np.random.uniform(range_min, range_max)
 
-        print("stiffness" + str(new_value))
         if self.random_model == self.cylinder or self.random_model == self.cylinder_big:
             self.joint_ids = self.joint_ids_cyl
         elif self.random_model == self.box or self.random_model == self.box_big:
@@ -637,8 +609,6 @@ class HandEnv(Env):
             new_value = 1000
         shape = self.model
 
-        print("stiffness" + str(new_value))
-        print("shape" + shape)
         if shape == self.cylinder:
             self.joint_ids = self.joint_ids_cyl
         elif shape == self.box:
@@ -658,6 +628,30 @@ class HandEnv(Env):
             self.sim.model.tendon_stiffness[i] = new_value
 
         return new_value
+
+    def set_object_position(self, pos=None, quat=None):
+        if pos is None:
+            pos = np.random.uniform(-0.005, 0.005, size=(3,))
+
+        if quat is None:
+            theta = np.random.uniform(0, np.deg2rad(5.0))
+            d = np.random.normal(0, 1, size=(3,))
+            d /= np.linalg.norm(d)
+
+            quat = np.array(
+                [
+                    np.cos(theta * 0.5),
+                    d[0] * np.sin(theta * 0.5),
+                    d[1] * np.sin(theta * 0.5),
+                    d[2] * np.sin(theta * 0.5),
+                ]
+            )
+
+        idx = self.sim.model.body_name2id("target_object")
+        self.sim.model.body_pos[idx][0:3] += pos[:]
+        self.sim.model.body_quat[idx][0:4] = quat[:]
+
+        return np.concatenate([pos, quat], axis=0)
 
     def get_env(self):
         return self.sim

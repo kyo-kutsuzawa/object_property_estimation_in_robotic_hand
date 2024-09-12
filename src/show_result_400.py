@@ -4,7 +4,7 @@ import matplotlib.cm
 import matplotlib.pyplot as plt
 import numpy as np
 import tyro
-from evaluate import EvaluationResult, shape_names
+from evaluate import EvaluationResult, MethodType, shape_names
 
 
 def main(resultdir: str, /, figname: str = "result/result_400.pdf", plot: bool = True):
@@ -20,43 +20,38 @@ def main(resultdir: str, /, figname: str = "result/result_400.pdf", plot: bool =
     with open(resultdir, "rb") as fp:
         result: EvaluationResult = pickle.load(fp)
 
-    n_classes = len(shape_names)
-    n_stiffness = int(result.n_data / n_classes)
+    stiffness_list = list(
+        set([int(np.mean(result.stiffness_true[i])) for i in range(result.n_data)])
+    )
+    stiffness_list.sort()
+
+    n_stiffness = len(stiffness_list)
     dt = 1e-3 * result.sequence_length
 
     fig = plt.figure(figsize=(4.5 * cm, 3.2 * cm), constrained_layout=True)
     ax = fig.add_subplot(1, 1, 1)
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Stiffness [N/m]")
-    ax.set_ylim(-50, 850)
+    ax.set_ylim(0, 200)
 
-    for i in range(result.n_data):
-        # Here, it is assumed that e.g.:
-        # stiffness: [1, 100, 200, ..., 1, 100, 200, ..., 1, 100, 200, ...]
-        # shape: [0, 0, 0, ..., 1, 1, 1, ..., 2, 2, 2, ...]
-        idx_shape = int(np.floor(i / n_stiffness))
-        idx_stiffness = i % n_stiffness
+    i = 104  # Index of a representative data to be shown
+    print(result.stiffness_true[i, 0, 0], result.shape_true[i, 0, 0])
 
-        k_true = float(np.mean(result.stiffness_true[i]))
+    k = int(np.mean(result.stiffness_true[i]))
+    idx_stiffness = stiffness_list.index(k)
+    color = matplotlib.colormaps.get_cmap("viridis")(idx_stiffness / n_stiffness)
 
-        if 350 < k_true < 450 and idx_shape == 0:
-            print(k_true)
-            times = np.arange(result.stiffness_true.shape[1]) * dt
-            color = matplotlib.colormaps.get_cmap("viridis")(
-                idx_stiffness / n_stiffness
-            )
-            ax.plot(
-                times, result.stiffness_true[i].flatten(), ls="--", lw=1, color=color
-            )
-            ax.plot(times, result.stiffness_mu[i].flatten(), lw=1, color=color)
-            ax.fill_between(
-                times,
-                result.stiffness_mu[i].flatten() - result.stiffness_sigma[i].flatten(),
-                result.stiffness_mu[i].flatten() + result.stiffness_sigma[i].flatten(),
-                color=color,
-                alpha=0.3,
-            )
-            ax.set_xlim(times[0], times[-1])
+    times = np.arange(result.stiffness_true.shape[1]) * dt
+    ax.plot(times, result.stiffness_true[i].flatten(), ls="--", lw=1, color=color)
+    ax.plot(times, result.stiffness_mu[i].flatten(), lw=1, color=color)
+    ax.fill_between(
+        times,
+        result.stiffness_mu[i].flatten() - result.stiffness_sigma[i].flatten(),
+        result.stiffness_mu[i].flatten() + result.stiffness_sigma[i].flatten(),
+        color=color,
+        alpha=0.3,
+    )
+    ax.set_xlim(times[0], times[-1])
 
     fig.savefig(figname)
 

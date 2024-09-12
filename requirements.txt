@@ -61,7 +61,7 @@ shtab==1.7.1
 six==1.16.0
 SQLAlchemy==2.0.30
 sympy==1.12.1
-tensorboard==2.17.0
+tensorboard==2.17.1
 tensorboard-data-server==0.7.2
 threadpoolctl==3.5.0
 torch==2.3.1

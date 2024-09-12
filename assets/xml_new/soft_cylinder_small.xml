@@ -14,8 +14,11 @@
     <!-- <quality shadowsize="2048"/> -->
     <map shadowscale="0.5" fogstart="10" zfar="40" haze="0.3"/>
     <!-- <global azimuth="130" elevation="-40"/> stiffness="450" -->
-    <global offwidth="1920" offheight="1080"/>
   </visual>
+
+  <default>
+    <camera pos="100 0 0" fovy="30" euler="45 0 0" mode="trackcom" />
+  </default>
 
   <asset>
     <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
@@ -36,28 +39,37 @@
     <light pos="0 0 1"/>
     <light pos="0.3 0 1.5" dir="0 0 -1" directional="true"/>
     <geom name="floor" pos="0 0 -0.08" size="0 0 0.05" type="plane" material="groundplane"/>
-    <camera name="camera_name" pos="0.2 0.5 0.3" xyaxes="-1 0.5 0 -1 -1 2"  />
+    <camera name="camera_name" pos="0 0 0" fovy="30" euler="45 0 0" mode="trackcom" />
+
     <!-- <body name="object" pos="0.085 -0.01 -0.01"> -->
-    <!-- <body pos="0.085 -0.02 0.025"> -->
-    <body name="target_object" pos="0.1 -0.025 0.02">
-        <!-- <freejoint/> -->
-         <!-- <composite prefix="OBJ" type="ellipsoid" count="7 7 7" spacing="0.027">
-                <geom type="capsule" size=".012 0.01" rgba=".8 .2 .1 1" mass="0.003" contype="0" conaffinity="1"/>
+    <!-- <body pos="0.085 -0.018 0.02"> -->
+    <body name="target_object" pos="0.105 -0.028 0.02">
+      <!-- <freejoint/> -->
+    <!-- <body pos="0.085 -0.02 0.5"> -->
+         <!-- <composite prefix="OBJ" type="cylinder" count="7 7 8" spacing="0.0222"> -->
+         <!-- <composite prefix="OBJ" type="cylinder" count="7 7 9" spacing="0.02">
+                <geom type="capsule" size=".01 0.01" rgba=".8 .2 .1 1" mass="0.003" contype="0" conaffinity="1"/>
+                <joint kind="main" stiffness="1" damping="0" solreffix="-0.02 -1"/>
+                <tendon kind="main" stiffness="1" damping="0" solreffix="-0.02 -1"/>
+         </composite> -->
+         <composite prefix="OBJ" type="cylinder" count="6 6 8" spacing="0.024">
+                <geom type="capsule" size=".012 0.012" rgba=".8 .2 .1 1" mass="0.00052083" contype="0" conaffinity="1"/>
+                <joint kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
+                <tendon kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
+         </composite> 
+         <!-- shita dekai-->
+         <!-- <composite prefix="OBJ" type="cylinder" count="7 7 8" spacing="0.0262">
+                <geom type="capsule" size=".013 0.013" rgba=".8 .2 .1 1" mass="0.003" contype="0" conaffinity="1"/>
                 <joint kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
                 <tendon kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
          </composite> -->
-         <composite prefix="OBJ" type="ellipsoid" count="7 7 7" spacing="0.026">
-                <!-- <geom type="capsule" size=".013 .013" rgba=".8 .2 .1 1" mass="0.00043732" contype="0" conaffinity="1"/> -->
-                <geom type="capsule" size=".013 .013" rgba=".8 .2 .4 1" mass="0.00043732" contype="0" conaffinity="1"/>
-                <joint kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
-                <tendon kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
-         </composite>
     </body>
   </worldbody>
 
 </mujoco>
 
-                <!-- <skin texcoord="true" material="mattennis"/> -->
+<!-- <skin texcoord="true" material="mattennis"/> -->
 
                 <!-- <joint kind="main" stiffness="200" damping="10" solreffix="-100 -10"/>
                 <tendon kind="main" stiffness="200" damping="10" solreffix="-100 -10"/> -->
+                

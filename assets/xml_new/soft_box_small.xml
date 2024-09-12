@@ -14,7 +14,6 @@
     <!-- <quality shadowsize="2048"/> -->
     <map shadowscale="0.5" fogstart="10" zfar="40" haze="0.3"/>
     <!-- <global azimuth="130" elevation="-40"/> stiffness="450" -->
-    <global offwidth="1920" offheight="1080"/>
   </visual>
 
   <asset>
@@ -36,22 +35,20 @@
     <light pos="0 0 1"/>
     <light pos="0.3 0 1.5" dir="0 0 -1" directional="true"/>
     <geom name="floor" pos="0 0 -0.08" size="0 0 0.05" type="plane" material="groundplane"/>
-    <camera name="camera_name" pos="0.2 0.5 0.3" xyaxes="-1 0.5 0 -1 -1 2"  />
     <!-- <body name="object" pos="0.085 -0.01 -0.01"> -->
-    <!-- <body pos="0.085 -0.02 0.025"> -->
-    <body name="target_object" pos="0.1 -0.025 0.02">
+    <body name="target_object" pos="0.1 -0.02 0.02" euler="0 0 -0.5">
         <!-- <freejoint/> -->
-         <!-- <composite prefix="OBJ" type="ellipsoid" count="7 7 7" spacing="0.027">
-                <geom type="capsule" size=".012 0.01" rgba=".8 .2 .1 1" mass="0.003" contype="0" conaffinity="1"/>
+         <!-- <composite prefix="OBJ" type="box" count="4 5 7" spacing="0.029">
+                <geom type="capsule" size=".015 0.01" rgba=".8 .2 .1 1" mass="0.003" contype="0" conaffinity="1"/>
                 <joint kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
                 <tendon kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
          </composite> -->
-         <composite prefix="OBJ" type="ellipsoid" count="7 7 7" spacing="0.026">
-                <!-- <geom type="capsule" size=".013 .013" rgba=".8 .2 .1 1" mass="0.00043732" contype="0" conaffinity="1"/> -->
-                <geom type="capsule" size=".013 .013" rgba=".8 .2 .4 1" mass="0.00043732" contype="0" conaffinity="1"/>
+         <composite prefix="OBJ" type="box" count="6 5 8" spacing="0.024">
+                <geom type="capsule" size=".012 .012" rgba=".8 .2 .1 1" mass="0.000625" contype="0" conaffinity="1"/>
                 <joint kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
                 <tendon kind="main" stiffness="1" damping="1" solreffix="-0.02 -1"/>
          </composite>
+         
     </body>
   </worldbody>
 

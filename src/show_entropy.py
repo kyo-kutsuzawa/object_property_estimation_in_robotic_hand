@@ -1,12 +1,14 @@
+import os
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
 import tyro
-from evaluate import EvaluationResult, shape_names
+from evaluate import EvaluationResult, MethodType, shape_names
 
 
 def main(
-    figname: str = "result/result_comparison_entropy.pdf",
+    dirname: str = "result",
+    figname: str = "result_comparison_entropy.pdf",
     plot: bool = True,
 ):
     plt.rcParams["text.usetex"] = True
@@ -19,10 +21,10 @@ def main(
     cm = 1 / 2.54
 
     filelist = [
-        "result/result_test.pickle",
-        "result/result_test_big.pickle",
-        "result/result_test_noise_2_2.pickle",
-        "result/result_test_noise_8_8.pickle",
+        os.path.join(dirname, "result_test.pickle"),
+        os.path.join(dirname, "result_test_big.pickle"),
+        os.path.join(dirname, "result_test_noise_2_2.pickle"),
+        os.path.join(dirname, "result_test_noise_8_8.pickle"),
     ]
 
     labels = [
@@ -44,42 +46,67 @@ def main(
     n_stiffness = int(results[0].n_data / n_classes)
     idx_start = 15
 
-    fig = plt.figure(figsize=(7 * cm, 5 * cm), constrained_layout=True)
-    ax = fig.add_subplot(1, 1, 1)
+    fig = plt.figure(figsize=(7 * cm, 8 * cm), constrained_layout=True)
+    ax_k = fig.add_subplot(2, 1, 1)
+    ax_s = fig.add_subplot(2, 1, 2)
 
     for i, result in enumerate(results):
-        stiffness = np.zeros((n_stiffness,))
+        stiffness_list = list(
+            set([int(np.mean(result.stiffness_true[i])) for i in range(result.n_data)])
+        )
+        stiffness_list.sort()
+        n_stiffness = len(stiffness_list)
+
+        stiffness = np.array(stiffness_list)
+        sigma_list = [[] for _ in range(n_stiffness)]
         entropy_list = [[] for _ in range(n_stiffness)]
+
         for j in range(result.n_data):
-            # Here, it is assumed that e.g.:
-            # stiffness: [1, 100, 200, ..., 1, 100, 200, ..., 1, 100, 200, ...]
-            # shape: [0, 0, 0, ..., 1, 1, 1, ..., 2, 2, 2, ...]
-            idx_stiffness = j % n_stiffness
+            k = int(np.mean(result.stiffness_true[j]))
+            idx_stiffness = stiffness_list.index(k)
 
-            stiffness[idx_stiffness] = np.mean(result.stiffness_true[j])
+            sigma = result.stiffness_sigma[j, idx_start:, :]
+            sigma_list[idx_stiffness].append(np.mean(sigma))
+
             p = result.shape_est[j, idx_start:, :]
-            entropy_list[idx_stiffness].extend(
-                np.sum(-p * np.log(p) / np.log(n_classes), axis=1).flatten().tolist()
-            )
+            entropy = np.sum(-p * np.log(p) / np.log(n_classes), axis=1)
+            entropy_list[idx_stiffness].append(np.mean(entropy))
 
-        entropy_array = np.stack(entropy_list, axis=0)
-        entropy_mean = np.mean(entropy_array, axis=1)
-        ax.plot(
+        sigma_array = np.stack(sigma_list, axis=0)
+        sigma_mean = np.mean(sigma_array, axis=1)
+        ax_k.plot(
             stiffness,
-            entropy_mean,
+            sigma_mean,
+            color=f"C{i}",
             label=labels[i],
             marker=markers[i],
             lw=1,
             markersize=5,
         )
-    ax.set_xlim(xmin=0, xmax=800)
-    ax.set_yscale("log")
-    ax.set_ylim(ymin=5e-6, ymax=9e-1)
-    ax.set_xlabel("True stiffness [N/m]")
-    ax.set_ylabel("Entropy of shape estimation")
-    ax.legend(ncol=2, loc="upper right")
 
-    fig.savefig(figname)
+        entropy_array = np.stack(entropy_list, axis=0)
+        entropy_mean = np.mean(entropy_array, axis=1)
+        ax_s.plot(
+            stiffness,
+            entropy_mean,
+            color=f"C{i}",
+            label=labels[i],
+            marker=markers[i],
+            lw=1,
+            markersize=5,
+        )
+
+    ax_k.set_xlim(xmin=0, xmax=200)
+    ax_k.set_xticklabels([])
+    ax_k.set_ylabel("Standard deviation [N/m]")
+    ax_k.legend(ncol=2, loc="upper right", bbox_to_anchor=(1, 1.4))
+
+    ax_s.set_xlim(xmin=0, xmax=200)
+    ax_s.set_yscale("log")
+    ax_s.set_xlabel("True stiffness [N/m]")
+    ax_s.set_ylabel("Entropy of shape estimation")
+
+    fig.savefig(os.path.join(dirname, figname))
 
     if plot:
         plt.show()

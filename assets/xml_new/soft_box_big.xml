@@ -36,7 +36,7 @@
     <light pos="0.3 0 1.5" dir="0 0 -1" directional="true"/>
     <geom name="floor" pos="0 0 -0.08" size="0 0 0.05" type="plane" material="groundplane"/>
     <!-- <body name="object" pos="0.085 -0.01 -0.01"> -->
-    <body pos="0.1 -0.02 0.02" euler="0 0 -0.5">
+    <body name="target_object" pos="0.1 -0.02 0.02" euler="0 0 -0.5">
         <!-- <freejoint/> -->
          <!-- <composite prefix="OBJ" type="box" count="4 5 7" spacing="0.029">
                 <geom type="capsule" size=".015 0.01" rgba=".8 .2 .1 1" mass="0.003" contype="0" conaffinity="1"/>
